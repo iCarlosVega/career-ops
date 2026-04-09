@@ -8,6 +8,7 @@
 import { existsSync, mkdirSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = __dirname;
@@ -63,17 +64,138 @@ async function checkPlaywright() {
 }
 
 function checkCv() {
-  if (existsSync(join(projectRoot, 'cv.md'))) {
-    return { pass: true, label: 'cv.md found' };
-  }
+  const hasTex = existsSync(join(projectRoot, 'cv.tex'));
+  const hasMd = existsSync(join(projectRoot, 'cv.md'));
+  if (hasTex) return { pass: true, label: 'cv.tex found (LaTeX pipeline active)' };
+  if (hasMd) return { pass: true, label: 'cv.md found (HTML pipeline active)' };
   return {
     pass: false,
-    label: 'cv.md not found',
+    label: 'No CV found (cv.tex or cv.md required)',
     fix: [
-      'Create cv.md in the project root with your CV in markdown',
+      'For LaTeX resume: paste your .tex file as cv.tex in the project root',
+      'For markdown resume: create cv.md in the project root',
       'See examples/ for reference CVs',
     ],
   };
+}
+
+// ── LaTeX compiler paths to check (including post-brew-install locations) ──
+// pdflatex preferred — cv.tex uses pdfTeX primitives (pdfgentounicode, glyphtounicode)
+const LATEX_CANDIDATES = [
+  'pdflatex', 'xelatex', 'lualatex',
+  '/Library/TeX/texbin/pdflatex',
+  '/Library/TeX/texbin/xelatex',
+  '/usr/texbin/pdflatex',
+  '/usr/local/bin/pdflatex',
+];
+
+// Required LaTeX packages for cv.tex (fontawesome, marvosym used in the resume template)
+const REQUIRED_TEX_PACKAGES = ['fontawesome', 'marvosym'];
+
+function findLatexCompiler() {
+  for (const cmd of LATEX_CANDIDATES) {
+    try {
+      if (cmd.startsWith('/')) {
+        if (existsSync(cmd)) return cmd;
+      } else {
+        execSync(`which ${cmd}`, { stdio: 'pipe' });
+        return cmd;
+      }
+    } catch { /* not found, try next */ }
+  }
+  return null;
+}
+
+function findTlmgr() {
+  const candidates = [
+    'tlmgr',
+    '/Library/TeX/texbin/tlmgr',
+    '/usr/texbin/tlmgr',
+  ];
+  for (const cmd of candidates) {
+    try {
+      if (cmd.startsWith('/')) {
+        if (existsSync(cmd)) return cmd;
+      } else {
+        execSync(`which ${cmd}`, { stdio: 'pipe' });
+        return cmd;
+      }
+    } catch { /* not found */ }
+  }
+  return null;
+}
+
+function getMissingPackages(tlmgr) {
+  try {
+    const installed = execSync(`${tlmgr} list --only-installed`, {
+      stdio: 'pipe',
+      encoding: 'utf-8',
+      timeout: 15_000,
+    });
+    return REQUIRED_TEX_PACKAGES.filter(pkg => !installed.includes(pkg));
+  } catch {
+    return REQUIRED_TEX_PACKAGES; // assume all missing if tlmgr list fails
+  }
+}
+
+function checkLatex() {
+  // Only required when cv.tex exists
+  if (!existsSync(join(projectRoot, 'cv.tex'))) {
+    return { pass: true, label: 'LaTeX (skipped — no cv.tex in project root)' };
+  }
+
+  const compiler = findLatexCompiler();
+
+  if (!compiler) {
+    // Auto-install BasicTeX via Homebrew
+    console.log(`  ${dim('→ LaTeX not found. Installing BasicTeX via Homebrew (this may take a few minutes)...')}`);
+    try {
+      execSync('brew install --quiet basictex', { stdio: 'inherit', timeout: 300_000 });
+    } catch {
+      return {
+        pass: false,
+        label: 'LaTeX not installed (Homebrew install failed)',
+        fix: [
+          'Run manually: brew install basictex',
+          'Then open a new terminal and run: npm run doctor',
+        ],
+      };
+    }
+  }
+
+  // Re-detect after potential install
+  const foundCompiler = findLatexCompiler();
+  if (!foundCompiler) {
+    return {
+      pass: false,
+      label: 'LaTeX installed but compiler not found in PATH yet',
+      fix: ['Open a new terminal and run: npm run doctor'],
+    };
+  }
+
+  // Check and install required packages
+  const tlmgr = findTlmgr();
+  if (tlmgr) {
+    const missing = getMissingPackages(tlmgr);
+    if (missing.length > 0) {
+      console.log(`  ${dim(`→ Installing missing LaTeX packages: ${missing.join(', ')}...`)}`);
+      try {
+        execSync(`sudo ${tlmgr} update --self`, { stdio: 'inherit', timeout: 60_000 });
+        execSync(`sudo ${tlmgr} install ${missing.join(' ')}`, { stdio: 'inherit', timeout: 120_000 });
+      } catch {
+        return {
+          pass: false,
+          label: `LaTeX found but missing packages: ${missing.join(', ')}`,
+          fix: [
+            `Run: sudo tlmgr update --self`,
+            `Run: sudo tlmgr install ${missing.join(' ')}`,
+          ],
+        };
+      }
+    }
+  }
+
+  return { pass: true, label: `LaTeX ready (${foundCompiler})` };
 }
 
 function checkProfile() {
@@ -158,6 +280,7 @@ async function main() {
     checkDependencies(),
     await checkPlaywright(),
     checkCv(),
+    checkLatex(),
     checkProfile(),
     checkPortals(),
     checkFonts(),

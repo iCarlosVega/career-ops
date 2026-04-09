@@ -40,7 +40,8 @@ if (!existsSync(inputPath)) {
 // ── Detect compiler ────────────────────────────────────────────────────────
 
 function findCompiler() {
-  for (const compiler of ['xelatex', 'pdflatex', 'lualatex']) {
+  // pdflatex preferred — cv.tex uses pdfTeX primitives (pdfgentounicode, glyphtounicode)
+  for (const compiler of ['pdflatex', 'xelatex', 'lualatex']) {
     try {
       execSync(`which ${compiler}`, { stdio: 'pipe' });
       return compiler;
