@@ -3,14 +3,14 @@
 # This is the single source of truth for your personal data across all modes.
 
 candidate:
-  full_name: "Jane Smith"
-  email: "jane@example.com"
-  phone: "+1-555-0123"
-  location: "San Francisco, CA"
-  linkedin: "linkedin.com/in/janesmith"
-  portfolio_url: "https://janesmith.dev"
-  github: "github.com/janesmith"
-  twitter: "https://x.com/janesmith"
+  full_name: "Carlos Vega"
+  email: "carlosvegalemus@gmail.com"
+  phone: "917-943-2594"
+  location: "New York, NY"
+  linkedin: "linkedin.com/in/carlos-vega-lemus" 
+  portfolio_url: "https://carlos-vega.co"
+  github: "github.com/iCarlosVega"
+  twitter: "https://x.com/datagoggings"
   # (Optional) Canva resume design ID for visual CV generation via /career-ops pdf.
   # Find it in your Canva design URL: https://www.canva.com/design/DAxxxxxxx/...
   # The ID starts with "D" and is 11 characters long.
@@ -19,14 +19,17 @@ candidate:
 target_roles:
   # Your North Star roles — what you're optimizing for
   primary:
-    - "Senior AI Engineer"
-    - "Staff ML Engineer"
+    - "AI Engineer"
+    - "Fullstack Engineer"
+    - "Backend Engineer"
+    - "Frontend Engineer"
+    - "ML Engineer"
   # Archetypes help the evaluation system score fit
   archetypes:
     - name: "AI/ML Engineer"
-      level: "Senior/Staff"
+      level: "Entry"
       fit: "primary"        # primary = dream role, secondary = good fit, adjacent = stretch
-    - name: "AI Product Manager"
+    - name: "AI Prduct Manager"
       level: "Senior"
       fit: "secondary"
     - name: "Solutions Architect"
@@ -69,3 +72,12 @@ location:
   visa_status: "No sponsorship needed"
   # For remote roles outside your country:
   # onsite_availability: "1 week/month in any city"
+
+# Autonomous application submission (optional)
+# When enabled, /career-ops apply will fill and submit forms via Playwright
+# instead of presenting answers for copy-paste.
+# Requires Playwright MCP server active in your Claude Code session.
+# autonomous_apply:
+#   enabled: true
+#   min_score: 4.0              # Only auto-submit if offer score >= this value
+#   confirm_before_submit: false # Set true to require "yes/no" confirmation before clicking Submit

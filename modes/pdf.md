@@ -1,5 +1,58 @@
 # Modo: pdf — Generación de PDF ATS-Optimizado
 
+## Source detection (run first)
+
+Check if `cv.tex` exists in the project root:
+- **YES → use LaTeX pipeline** (steps below). `cv.tex` takes priority over `cv.md`.
+- **NO → skip to HTML/Playwright pipeline** (existing steps further down).
+
+---
+
+## LaTeX Pipeline (when `cv.tex` exists)
+
+Preserves the user's exact resume design. Only wording is changed — never LaTeX commands or structure.
+
+### Steps
+
+1. Read `cv.tex` fully
+2. Read the JD (from context, or ask the user for it)
+3. Extract 15-20 ATS keywords from the JD
+4. Detect JD language → write tailored `.tex` in same language
+5. Identify text to rewrite:
+   - `\item` bullet content — reorder by JD relevance (most relevant first within each role), inject keywords naturally
+   - Summary/objective line — rewrite with top 5 keywords + candidate narrative
+   - **ONLY change plain text content. NEVER touch LaTeX commands.**
+6. Write modified LaTeX to `output/cv-{candidate-slug}-{company-slug}-{YYYY-MM-DD}.tex`
+7. Compile: `node generate-latex-pdf.mjs output/cv-{candidate-slug}-{company-slug}-{YYYY-MM-DD}.tex output/cv-{candidate-slug}-{company-slug}-{YYYY-MM-DD}.pdf`
+8. Report: PDF path, keyword coverage %
+9. Update tracker: PDF ❌ → ✅
+
+### LaTeX editing rule (critical)
+
+**Only modify text that appears as plain content inside LaTeX environments.**
+Never modify: `\item` command itself, `\begin{...}`, `\end{...}`, `\textbf{...}`, `\section{...}`, dates, `%` comments, or any command syntax.
+
+```latex
+% BEFORE
+\item Executed and managed manual and automated tests for 20+ iOS and Android apps
+
+% AFTER — JD mentions "robotic process automation" and "CI/CD pipelines"
+\item Executed robotic process automation test suites across 20+ iOS/Android apps, integrated into CI/CD pipelines to improve release reliability
+```
+
+Same ethical rule as HTML pipeline: **NEVER invent experience. Only reformulate real experience with the JD's vocabulary.**
+
+### Fallback
+
+If `node generate-latex-pdf.mjs` fails (BasicTeX not installed, LaTeX errors):
+1. Report the exact error
+2. Save the tailored `.tex` to `output/` anyway — user can compile manually (Overleaf, etc.)
+3. Do NOT fall back to the HTML pipeline without asking — the user chose LaTeX for a reason
+
+---
+
+## HTML/Playwright Pipeline (when `cv.tex` does not exist)
+
 ## Pipeline completo
 
 1. Lee `cv.md` como fuentes de verdad

@@ -8,7 +8,8 @@ These files contain your personal data, customizations, and work product. Update
 
 | File | Purpose |
 |------|---------|
-| `cv.md` | Your CV in markdown |
+| `cv.md` | Your CV in markdown (used by HTML/Playwright PDF pipeline) |
+| `cv.tex` | Your CV in LaTeX (used by LaTeX PDF pipeline — preserves your exact design) |
 | `config/profile.yml` | Your identity, targets, comp range |
 | `modes/_profile.md` | Your archetypes, narrative, negotiation scripts |
 | `article-digest.md` | Your proof points from portfolio |

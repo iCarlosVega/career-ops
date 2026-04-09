@@ -105,3 +105,55 @@ Si el formulario tiene más preguntas que las visibles:
 - Pedir al candidato que haga scroll y comparta otro screenshot
 - O que pegue las preguntas restantes
 - Procesar en iteraciones hasta cubrir todo el formulario
+
+## Paso 7 — Envío Autónomo
+
+**Solo se activa si `autonomous_apply.enabled: true` en `config/profile.yml`.**
+
+### Preconditions
+
+1. Leer `config/profile.yml` → extraer bloque `autonomous_apply`
+2. Si el bloque no existe o `enabled: false` → SKIP (usar flujo de copy-paste habitual del Paso 6)
+3. Verificar que el score del report >= `min_score` (default: 4.0) → si no cumple → SKIP con aviso al candidato
+4. Si `confirm_before_submit: true` → mostrar resumen de lo que se va a enviar y preguntar "¿Envío la aplicación a [Empresa] — [Rol]? (s/n)" → esperar confirmación explícita antes de continuar
+
+### Form filling con Playwright
+
+Para cada campo del formulario y su respuesta generada en Paso 5:
+
+1. Tomar `browser_snapshot` para identificar selectores actuales de los campos
+2. Para campos de texto libre (input, textarea): `browser_fill(selector, respuesta)`
+3. Para dropdowns (select): `browser_select_option(selector, valor)`
+4. Para checkboxes y radio buttons: `browser_click(selector)`
+5. Para upload de CV/resume: `browser_set_input_files(selector, ruta_pdf)` — usar el PDF más reciente en `output/` que corresponda a la empresa/rol
+6. Si el formulario tiene páginas múltiples: `browser_click` en el botón "Next" / "Continue" y repetir desde el punto 1 para la nueva página
+
+### Submit
+
+1. Tomar `browser_snapshot` completo para verificar que todos los campos visibles estén rellenos antes de enviar
+2. Localizar el botón de envío buscando en orden: `button[type=submit]`, texto exacto "Apply", "Submit Application", "Send Application", "Submit"
+3. `browser_click(submit_selector)`
+4. Esperar la página de confirmación (texto: "Application received", "Thanks for applying", "Your application has been submitted", o equivalente)
+5. Guardar screenshot de la confirmación: `output/{company-slug}-{YYYY-MM-DD}-submitted.png`
+
+### Post-submit
+
+1. Actualizar estado en `data/applications.md`: `Evaluated` → `Applied`
+2. Actualizar Section G del report con las respuestas finales exactas que fueron enviadas
+3. Reportar al candidato:
+
+```
+✅ Aplicación enviada
+   Empresa: [Empresa]
+   Rol:     [Rol]
+   Score:   X.X/5
+   Screenshot: output/{slug}-{date}-submitted.png
+   Siguiente paso: /career-ops contacto → LinkedIn outreach al hiring manager
+```
+
+### Fallback
+
+Si Playwright no puede rellenar un campo, no encuentra el botón de submit, o el formulario devuelve error:
+- **STOP inmediatamente** — no reintentar ni hacer suposiciones sobre lo que faltó
+- Reportar exactamente qué campo o paso falló
+- Presentar las respuestas restantes en formato copy-paste para que el candidato complete manualmente

@@ -1,3 +1,45 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
+
+## Development Commands
+
+```bash
+# First-time setup
+npm install
+npx playwright install chromium
+
+# Validate setup (prerequisites, Playwright, file structure)
+node doctor.mjs
+
+# Run full test suite (syntax, scripts, dashboard, data contract)
+node test-all.mjs
+
+# Run tests without rebuilding the Go dashboard (faster)
+node test-all.mjs --quick
+
+# Build the Go TUI dashboard
+cd dashboard && go build -o career-dashboard .
+
+# Pipeline maintenance
+npm run verify      # Check pipeline integrity
+npm run normalize   # Fix non-canonical statuses in applications.md
+npm run dedup       # Remove duplicate tracker entries
+npm run merge       # Merge batch/tracker-additions/ TSVs into applications.md
+
+# CV sync check (warns if cv.md metrics diverge from reports)
+npm run sync-check
+
+# Liveness check (verify open offers are still active)
+npm run liveness
+```
+
+**Dashboard** is a Go TUI (`dashboard/`) that reads `data/applications.md` and renders pipeline stats in the terminal. Build with `go build`, run the binary from the project root so it can find `data/`.
+
+---
+
 # Career-Ops -- AI Job Search Pipeline
 
 ## Origin
@@ -221,7 +263,9 @@ Default modes are in `modes/` (English). Additional language-specific modes are 
 
 ### CV Source of Truth
 
-- `cv.md` in project root is the canonical CV
+- `cv.tex` (if present) is the canonical CV for LaTeX users — use the LaTeX pipeline (`generate-latex-pdf.mjs`)
+- `cv.md` is the canonical CV for non-LaTeX users — use the HTML/Playwright pipeline (`generate-pdf.mjs`)
+- PDF mode auto-detects which source exists and routes accordingly. If both exist, `cv.tex` takes priority.
 - `article-digest.md` has detailed proof points (optional)
 - **NEVER hardcode metrics** -- read them from these files at evaluation time
 
@@ -231,7 +275,7 @@ Default modes are in `modes/` (English). Additional language-specific modes are 
 
 **This system is designed for quality, not quantity.** The goal is to help the user find and apply to roles where there is a genuine match -- not to spam companies with mass applications.
 
-- **NEVER submit an application without the user reviewing it first.** Fill forms, draft answers, generate PDFs -- but always STOP before clicking Submit/Send/Apply. The user makes the final call.
+- **Never submit silently.** By default, always stop before Submit. Autonomous submission is available only when `autonomous_apply.enabled: true` is set in `config/profile.yml`. Even then: verify score meets the threshold, optionally confirm, capture a screenshot of the confirmation page, and update the tracker to `Applied` immediately after.
 - **Strongly discourage low-fit applications.** If a score is below 4.0/5, explicitly recommend against applying. The user's time and the recruiter's time are both valuable. Only proceed if the user has a specific reason to override the score.
 - **Quality over speed.** A well-targeted application to 5 companies beats a generic blast to 50. Guide the user toward fewer, better applications.
 - **Respect recruiters' time.** Every application a human reads costs someone's attention. Only send what's worth reading.
